@@ -9,7 +9,7 @@ import csv
 def extract_digits(pil_image, conf_thresh=0.0):
     # Configure to only detect digits
     config = "--psm 6 -c tessedit_char_whitelist=0123456789" # 6 is the best configuration so far
-    #text = pytesseract.image_to_string(pil_image, config=config) 
+    #text = pytesseract.image_to_string(pil_image, config=config)
     data = pytesseract.image_to_data(pil_image, config=config, output_type=pytesseract.Output.DICT)
     #digits = "".join(ch for ch in text if ch.isdigit())
 
@@ -26,10 +26,10 @@ def extract_digits(pil_image, conf_thresh=0.0):
             if filtered_text:
                 left_coord = data["left"][i]
                 detections.append({"left": left_coord, "text": filtered_text, "conf": conf})
-    
+
     # Sort detections by the left coordinate.
     detections = sorted(detections, key=lambda x: x["left"])
-    
+
     final_digits = []
     for d in detections:
         # If confidence is low, replace each digit in this detection with X.
@@ -37,11 +37,11 @@ def extract_digits(pil_image, conf_thresh=0.0):
             final_digits.extend(["X"] * len(d["text"])) # Prev: final_digits.extend(["X"] * len(d["text"]))
         else:
             final_digits.extend(list(d["text"]))
-    
+
     # Change first 9 with a 2 (OPTIONAL)
     if final_digits and final_digits[0] == "9":
         final_digits[0] = "2"
-    
+
     # Ensure exactly 6 characters
     if len(final_digits) < 6:
         final_digits.extend(["X"] * (6 - len(final_digits)))
@@ -49,7 +49,7 @@ def extract_digits(pil_image, conf_thresh=0.0):
         final_digits = final_digits[:6]
 
     # Leave out last digit for test
-    #final_digits[-1] = "X"    
+    #final_digits[-1] = "X"
 
 
     return "".join(final_digits)
@@ -58,7 +58,7 @@ def main():
     parser = argparse.ArgumentParser(description="Digit Recognition CLI using Tesseract OCR")
     parser.add_argument("images", nargs="+", help="Paths to the input images")
     args = parser.parse_args()
-    
+
     # Dictionary to store the results
     res = {}
 
@@ -99,5 +99,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
