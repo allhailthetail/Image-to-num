@@ -1,0 +1,10 @@
+[project]
+name = "ocr-project"
+version = "0.1.0"
+description = "OCR reader using Tesseract"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pillow>=12.0.0",
+    "pytesseract>=0.3.13",
+]
