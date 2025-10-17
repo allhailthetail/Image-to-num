@@ -1,0 +1,35 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 20px;
+}
+
+.wrap {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+#image {
+  max-width: 100%;
+  display: block;
+}
+.bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+
+.coords {
+  font-family: system-ui, sans-serif;
+}
+
+button {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+input[type="text"] {
+  width: 520px;
+  max-width: 100%;
+}
