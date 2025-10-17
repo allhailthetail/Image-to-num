@@ -111,6 +111,9 @@ def preprocess_image(input_path, output_path=None):
     Parameters:
     input_path (str): File being processed
     output_path=None (str): Output can be changed if desired...
+
+    Output:
+    processed (PIL.Image.Image): Enhanced/adjusted image object
     '''
 
     # First open the image
@@ -138,7 +141,7 @@ def preprocess_image(input_path, output_path=None):
     # Invert the colors
     inverted = ImageOps.invert(gray)
 
-    # apply gaussian
+    # apply Gaussian blur
     blurred = inverted.filter(ImageFilter.GaussianBlur(1.5)) # 3.5 optimal, 1.5 seems to work fine
 
     # Increase contrast
