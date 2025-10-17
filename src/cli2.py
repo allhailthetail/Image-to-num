@@ -1,10 +1,6 @@
-import argparse
-import os
-import gc
-import numpy as np
-import pytesseract
-from utils import preprocess_image
-import csv
+# Imports:
+import os, argparse, pytesseract # from py base and installed pkgs
+from utils import preprocess_image # Imports from local project:
 
 def extract_digits(pil_image, conf_thresh=0.0):
     '''
@@ -22,9 +18,7 @@ def extract_digits(pil_image, conf_thresh=0.0):
 
     # Configure Tesseract to only detect digits
     config = "--psm 6 -c tessedit_char_whitelist=0123456789" # 6 is the best configuration so far
-    #text = pytesseract.image_to_string(pil_image, config=config)
     data = pytesseract.image_to_data(pil_image, config=config, output_type=pytesseract.Output.DICT)
-    #digits = "".join(ch for ch in text if ch.isdigit())
 
     detections = []
     for i in range(len(data["text"])):
@@ -61,10 +55,7 @@ def extract_digits(pil_image, conf_thresh=0.0):
     elif len(final_digits) > 6:
         final_digits = final_digits[:6]
 
-    # Leave out last digit for test
-    #final_digits[-1] = "X"
-
-
+    # Return resulting string to caller
     return "".join(final_digits)
 
 def main():
