@@ -1,0 +1,183 @@
+# Imports:
+import sys
+from PIL import Image, ImageOps, ImageEnhance, ImageFilter # used by preprocess_image()
+
+# Potentially Deprecated Imports:
+# import cv2                   # used by auto_crop_image()
+# import numpy as np           # used by auto_crop_image()
+# from itertools import islice # used by calculate_digit_level_accuracy()
+# import csv                   # used by calculate_digit_level_accuracy()
+# import os                  # Unsure what this is for...
+
+## Begin Potentially deprecated functions:
+# def calculate_digit_level_accuracy(labels, predictions, nrows=99):
+#     predictions_dict = {}
+#     with open(predictions, newline="") as pred_file:
+#         reader = csv.DictReader(pred_file)
+#         for row in reader:
+#             predictions_dict[row["image"]] = row["recognized_text"]
+
+#     total_digits = 0
+#     correct_digits = 0
+#     correct_digits_including_X = 0
+
+#     with open(labels, newline="") as labels_file:
+#         reader = csv.DictReader(labels_file)
+#         for row in islice(reader, nrows):
+#             image_name = row["filename"]
+#             true_value = row["label"]
+#             predicted_value = predictions_dict.get(image_name, "")
+
+#             for label, pred in zip(true_value, predicted_value):
+#                 total_digits += 1
+#                 if label == pred:
+#                     correct_digits += 1
+#                     correct_digits_including_X += 1
+#                 # New code for testing wheter the X are placed in the correct position
+#                 # If so, the accuracy should go up (Initial accuracy before implementing this part: 88%)
+#                 elif pred == "X":
+#                     correct_digits_including_X += 1
+
+#             total_digits += abs(len(true_value) - len(predicted_value))
+
+#     digit_accuracy = correct_digits / total_digits if total_digits > 0 else 0
+#     digit_accuracy_including_X = correct_digits_including_X / total_digits if total_digits > 0 else 0
+#     print(f"Digit-Level Accuracy: {digit_accuracy:.2%}")
+#     print(f"Digit-Level Accuracy counting X as a correct prediction: {digit_accuracy_including_X:.2%}")
+#     return digit_accuracy
+
+# def auto_crop_image(img_path, output_path=None):
+#     # Load the image in Grayscale
+#     image = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+
+#     # Resize image for speed
+#     base_width = 1500 # 1500 optimal
+#     height, width = image.shape
+#     w_percent = (base_width / float(width))
+#     h_size = int((float(height)* float(w_percent)))
+#     image = cv2.resize(image, (base_width, h_size))
+
+#     # Apply Gaussian blur, reduce noise and smoothen image
+#     blurred = cv2.GaussianBlur(image, (5,5), 0)
+
+#     # Use adaptive thresholding to handle varying lighting conditions
+#     thresh = cv2.adaptiveThreshold(
+#         blurred,
+#         255,
+#         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+#         cv2.THRESH_BINARY_INV,
+#         11,  # Block size; must be odd
+#         2    # Constant subtracted from mean
+#     )
+
+#     # Find contours
+#     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+#     if not contours:
+#         return Image.fromarray(image)
+
+#     # Filter the contours, remove very small regions
+#     valid_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 50]
+
+#     if not valid_contours:
+#         return Image.fromarray(image)
+
+#     # Get bounding boxes around all valid contours
+#     x_min = np.inf
+#     y_min = np.inf
+#     x_max = -np.inf
+#     y_max = -np.inf
+#     for cnt in valid_contours:
+#         x, y, w, h = cv2.boundingRect(cnt)
+#         x_min = min(x_min, x)
+#         y_min = min(y_min, y)
+#         x_max = max(x_max, x + w)
+#         y_max = max(y_max, y + h)
+
+#     cropped = image[int(y_min):int(y_max), int(x_min):int(x_max)]
+
+#     if output_path:
+#         cv2.imwrite(output_path, cropped)
+
+#     return Image.fromarray(cropped)
+
+# End potentially deprecated functions...
+
+def preprocess_image(input_path, output_path=None):
+    '''
+    Description:
+    Function processes the image before it's sent to Tesseract for text extraction.
+
+    1. Image is resized so fewer pixels need to be analyzed (efficiency bump)
+    2. Crop to relevant area
+    3. Convert from color to B/W
+    4. Invert colors (Black text on White bg is optimal)
+    5. Gaussian blur decreases number of artifacts/dust
+    6. Contrast is increased to further darken the text
+
+    Parameters:
+    input_path (str): File being processed
+    output_path=None (str): Output can be changed if desired...
+
+    Output:
+    processed (PIL.Image.Image): Enhanced/adjusted image object
+    '''
+
+    # First open the image
+    img = Image.open(input_path).convert("RGB")
+
+    # Smaller resolution (This is to run it on my CPU faster, but on a GPU this part of the code
+    # could be removed and the application should work better with a better image resolution)
+    base_width = 800 # 800 optimal
+    w_percent = (base_width / float(img.size[0]))
+    h_size = int((float(img.size[1])* float(w_percent)))
+    img = img.resize((base_width, h_size), Image.Resampling.LANCZOS)
+
+    # Crop it
+    width, height = img.size
+    left = int(0.1 * width) #0.033 For testing images, 0.05 Broken ones,0.1 Latest
+    top = int(0.4 * height)
+    right = int(0.80 * width) # 0.75 Before # 0.80 optimal
+    bottom = int(0.75 * height) # Just height before
+    cropped = img.crop((left, top, right, bottom))
+
+    # Convert grayscale
+    gray = cropped.convert("L")
+    #gray = img.convert("L")
+
+    # Invert the colors
+    inverted = ImageOps.invert(gray)
+
+    # apply Gaussian blur
+    blurred = inverted.filter(ImageFilter.GaussianBlur(1.5)) # 3.5 optimal, 1.5 seems to work fine
+
+    # Increase contrast
+    enhancer = ImageEnhance.Contrast(blurred)
+    processed = enhancer.enhance(15) # 10 optimal
+
+    if output_path:
+        processed.save(output_path)
+
+    return processed
+
+
+if __name__ == "__main__":
+    '''
+    Main Program:
+
+    input [stdin]:
+    arg1: input image location (.jpeg)
+    arg2: processed image location (.jpeg)
+    '''
+
+    if len(sys.argv) < 2:
+        print("Not enough arguments")
+        sys.exit(1)
+
+    input_img = sys.argv[1]
+    output_img = None
+    if len(sys.argv) > 2:
+        output_img = sys.argv[2]
+
+    processed_img = preprocess_image(input_img, output_img)
+    print("Processing Complete.")

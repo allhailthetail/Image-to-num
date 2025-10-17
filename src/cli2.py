@@ -7,7 +7,20 @@ from utils import preprocess_image
 import csv
 
 def extract_digits(pil_image, conf_thresh=0.0):
-    # Configure to only detect digits
+    '''
+    Description:
+    function sends pre-processed image(s) to Tesseract (external dependencies needed)
+    The result of the computer vision task is sent back to the calling function.
+
+    Parameters:
+    pil_image (PIL.Image.Image): Enhanced/adjusted image object
+    conf_thresh (float): Threshold value for the result (currently defaulted to 0.0)
+
+    Output:
+    digits (str): What Tesseract extracted from the processed images.
+    '''
+
+    # Configure Tesseract to only detect digits
     config = "--psm 6 -c tessedit_char_whitelist=0123456789" # 6 is the best configuration so far
     #text = pytesseract.image_to_string(pil_image, config=config)
     data = pytesseract.image_to_data(pil_image, config=config, output_type=pytesseract.Output.DICT)
@@ -55,18 +68,36 @@ def extract_digits(pil_image, conf_thresh=0.0):
     return "".join(final_digits)
 
 def main():
-    parser = argparse.ArgumentParser(description="Digit Recognition CLI using Tesseract OCR")
-    parser.add_argument("images", nargs="+", help="Paths to the input images")
-    args = parser.parse_args()
+    '''
+    Main program: cli2.py
 
-    # Dictionary to store the results
+    Business of the program:
+    1. Arguments are parsed from SDIN:
+       path to the image(s) to be processed via computer vision
+    2. For each raw image:
+       2a. image is pre-processed with Pillow, located in utils.py
+       2b.
+    '''
+    # Parse arguments from the command line:
+    parser = argparse.ArgumentParser(
+        description="Digit Recognition CLI using Tesseract OCR") # Define parser w/ description"
+
+    # Arguments for the parser, more can be easily added...
+    parser.add_argument("images",
+                        nargs="+",
+                        help="Paths to the input images")
+
+    args = parser.parse_args()  # Parse the arguments from STDIN
+
     res = {}
 
     # Count images processed
     count_img = 0
 
+    # Iterate over each image from PATH received from STDIN:
     for img_path in args.images:
-        count_img += 1
+        count_img += 1  # Update the count each run
+
         # Preprocess the image
         pil_image = preprocess_image(img_path)
 
@@ -77,25 +108,9 @@ def main():
         number_of_rows = 500
         if count_img < number_of_rows:
             res[os.path.basename(img_path)] = recognized_text
-        elif count_img == number_of_rows:
-            # Save the dictionary as a CSV for later accuracy calculation
-            with open("predictions.csv", "w", newline="") as csv_file:
-                writer = csv.writer(csv_file)
-                # Write header
-                writer.writerow(["image", "recognized_text"])
-                # Write each key-value pair from the dictionary
-                for image, recognized_text in res.items():
-                    writer.writerow([image, recognized_text])
-            print(f"First {number_of_rows} predictions saved")
 
-        # If not recognized put an X
-        #if not recognized_text:
-            #recognized_text = "X"
-
+        # Final results go to STDOUT for each raw image
         print(f"{os.path.basename(img_path)} {recognized_text}")
-
-        # Collect garbage
-        gc.collect()
 
 if __name__ == "__main__":
     main()
