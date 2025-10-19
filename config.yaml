@@ -1,0 +1,6 @@
+crop:
+  coordinates:
+    - x1: 80
+      y1: 240
+    - x2: 640
+      y2: 450
